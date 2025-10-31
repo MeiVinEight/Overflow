@@ -1,5 +1,7 @@
 package cn.evolvefield.onebot.client.milky.translator
 
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 
 internal interface ActionTranslator {
@@ -13,7 +15,7 @@ internal interface ActionTranslator {
     /**
      * Milky 的返回结果转换为 Onebot 的返回结果 data
      */
-    fun response(request: JsonObject, json: JsonObject): JsonObject
+    fun response(request: JsonObject, data: JsonObject): JsonElement
 
     companion object {
         val onebotRegistry: MutableMap<String, ActionTranslator> = mutableMapOf()
@@ -28,12 +30,12 @@ internal interface ActionTranslator {
                 TODO()
             }
         }
-        fun register(onebotAction: String, milkyAction: String, resp: (JsonObject, JsonObject) -> JsonObject) = register(onebotAction, milkyAction, { JsonObject() }, resp)
-        fun register(onebotAction: String, milkyAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonObject) {
+        fun register(onebotAction: String, milkyAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(onebotAction, milkyAction, { JsonObject() }, resp)
+        fun register(onebotAction: String, milkyAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) {
             val impl = object : ActionTranslator {
                 override val action: String = milkyAction
                 override fun request(params: JsonObject): JsonObject = req(params)
-                override fun response(request: JsonObject, json: JsonObject): JsonObject = resp(request, json)
+                override fun response(request: JsonObject, data: JsonObject): JsonElement = resp(request, data)
             }
             onebotRegistry[onebotAction] = impl
             milkyRegistry[milkyAction] = impl
@@ -44,10 +46,12 @@ internal interface ActionTranslator {
         }
         fun execute(milkyAction: String, request: JsonObject, json: JsonObject): JsonObject? {
             val impl = milkyRegistry[milkyAction] ?: return null
-            val data = impl.response(request, json)
+            // Milky 的返回格式与 Onebot 相同，如果失败，直接返回 Milky 的结果即可
+            if (json["status"].asString != "ok") return json
+            val data = impl.response(request, json["data"].asJsonObject)
             return JsonObject().apply {
-                addProperty("status", "ok")
-                addProperty("retcode", 0)
+                add("status", json["status"])
+                add("retcode", json["retcode"])
                 add("data", data)
                 request["echo"]?.also { add("echo", it) }
             }
