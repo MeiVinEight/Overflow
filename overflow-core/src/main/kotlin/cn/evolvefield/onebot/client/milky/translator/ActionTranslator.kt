@@ -23,12 +23,64 @@ internal interface ActionTranslator {
         fun init() {
             onebotRegistry.clear()
             milkyRegistry.clear()
-            register("get_login_info", "get_login_info") { request, json ->
-                TODO()
-            }
-            register("get_version_info", "get_impl_info") { request, json ->
-                TODO()
-            }
+            register("get_login_info", "get_login_info") { request, data -> JsonObject().apply {
+                add("user_id", data["uin"])
+                add("nickname", data["nickname"])
+            }}
+            register("get_version_info", "get_impl_info") { request, data -> JsonObject().apply {
+                add("app_name", data["impl_name"])
+                add("app_version", data["impl_version"])
+                addProperty("protocol_version", "v11")
+                for (key in data.keySet()) {
+                    add(key, data[key])
+                }
+            }}
+            register("get_stranger_info", "get_user_profile", { JsonObject().apply {
+                add("user_id", it["user_id"])
+            }}) { request, data -> JsonObject().apply {
+                add("user_id", request["user_id"])
+                add("nickname", data["nickname"])
+                add("qid", data["qid"])
+                add("sex", data["age"])
+                add("sex", data["sex"])
+                add("level", data["level"])
+                addIfNotExists("login_days", 0)
+
+                add("remark", data["remark"])
+                add("bio", data["bio"])
+                add("country", data["country"])
+                add("city", data["city"])
+                add("school", data["school"])
+            }}
+            register("get_friend_list", "get_friend_list") { request, data -> JsonArray().apply {
+                for (element in data["friends"].asJsonArray) {
+                    val obj = element.asJsonObject
+                    // 相同类型与名称的字段
+                    // user_id, nickname, sex, qid
+                    // 以下是缺少的字段
+                    obj.addIfNotExists("age", 0)
+                    obj.addIfNotExists("level", 0)
+                    obj.addIfNotExists("login_days", 0)
+                    add(obj)
+                }
+            }}
+            register("get_friend_info", "get_friend_info", { JsonObject().apply {
+                add("user_id", it["user_id"])
+            }}) { request, data -> data.apply {
+                // 同上 get_friend_list
+                addIfNotExists("age", 0)
+                addIfNotExists("level", 0)
+                addIfNotExists("login_days", 0)
+            }}
+        }
+        fun JsonObject.addIfNotExists(key: String, value: Number) {
+            if (!has(key)) addProperty(key, value)
+        }
+        fun JsonObject.addIfNotExists(key: String, value: String) {
+            if (!has(key)) addProperty(key, value)
+        }
+        fun JsonObject.addIfNotExists(key: String, value: Boolean) {
+            if (!has(key)) addProperty(key, value)
         }
         fun register(onebotAction: String, milkyAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(onebotAction, milkyAction, { JsonObject() }, resp)
         fun register(onebotAction: String, milkyAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) {
