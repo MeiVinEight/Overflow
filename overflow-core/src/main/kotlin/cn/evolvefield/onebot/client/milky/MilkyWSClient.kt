@@ -100,6 +100,9 @@ internal class MilkyWSClient(
         } catch (e: JsonSyntaxException) {
             logger.error("Json语法错误: {}", message)
             return
+        } catch (e: IllegalStateException) {
+            logger.error("转换事件时出现错误" , e)
+            return
         }
         handleReceiveEvent(translated)
 
