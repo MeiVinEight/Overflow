@@ -1,6 +1,5 @@
 package cn.evolvefield.onebot.client.milky.translator
 
-import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 
@@ -23,7 +22,7 @@ internal interface ActionTranslator {
         fun init() {
             onebotRegistry.clear()
             milkyRegistry.clear()
-            register("get_login_info", "get_login_info", responseObject { request, data ->
+            register("get_login_info", responseObject { request, data ->
                 add("user_id", data["uin"])
                 add("nickname", data["nickname"])
             })
@@ -52,7 +51,7 @@ internal interface ActionTranslator {
                 add("city", data["city"])
                 add("school", data["school"])
             })
-            register("get_friend_list", "get_friend_list", responseArray { request, data ->
+            register("get_friend_list", responseArray { request, data ->
                 for (element in data["friends"].asJsonArray) {
                     val obj = element.asJsonObject
                     // 相同类型与名称的字段
@@ -64,7 +63,7 @@ internal interface ActionTranslator {
                     add(obj)
                 }
             })
-            register("get_friend_info", "get_friend_info", requestParams {
+            register("get_friend_info", requestParams {
                 add("user_id", it["user_id"])
             }, responseObjectOfData { request, data ->
                 // 同上 get_friend_list
@@ -73,6 +72,9 @@ internal interface ActionTranslator {
                 addIfNotExists("login_days", 0)
             })
         }
+
+        fun register(sameAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(sameAction, sameAction, resp)
+        fun register(sameAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) = register(sameAction, sameAction, req, resp)
         fun register(onebotAction: String, milkyAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(onebotAction, milkyAction, { JsonObject() }, resp)
         fun register(onebotAction: String, milkyAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) {
             val impl = object : ActionTranslator {
