@@ -213,6 +213,8 @@ class Overflow : IMirai, CoroutineScope, LowLevelApiAccessor, OverflowAPI {
             BotConfig(
                 url = config.wsHost,
                 reversedPort = config.reversedWSPort,
+                milkyApiURL = config.milky.apiURL,
+                milkyEventURL = config.milky.eventURL,
                 token = config.token,
                 isAccessToken = config.token.isNotBlank(),
                 noPlatform = config.noPlatform,
@@ -303,6 +305,8 @@ class Overflow : IMirai, CoroutineScope, LowLevelApiAccessor, OverflowAPI {
         override suspend fun start(
             url: String,
             reversedPort: Int,
+            milkyApiURL: String,
+            milkyEventURL: String,
             token: String,
             retryTimes: Int,
             retryWaitMills: Long,
@@ -321,6 +325,8 @@ class Overflow : IMirai, CoroutineScope, LowLevelApiAccessor, OverflowAPI {
             val botConfig = BotConfig(
                 url = url,
                 reversedPort = reversedPort,
+                milkyApiURL = milkyApiURL,
+                milkyEventURL = milkyEventURL,
                 token = token,
                 isAccessToken = token.isNotBlank(),
                 noPlatform = noPlatform,

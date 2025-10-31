@@ -3,6 +3,8 @@ package cn.evolvefield.onebot.client.connection
 import cn.evolvefield.onebot.client.config.BotConfig
 import cn.evolvefield.onebot.client.core.Bot
 import cn.evolvefield.onebot.client.handler.ActionHandler
+import cn.evolvefield.onebot.client.milky.MilkyProducer
+import cn.evolvefield.onebot.client.milky.MilkyWSClient
 import kotlinx.coroutines.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -96,6 +98,9 @@ internal class ConnectFactory private constructor(
         scope0: CoroutineScope = CoroutineScope(CoroutineName("ConnectFactory"))
     ): OneBotProducer {
         val scope = if (parent == null) scope0 else scope0 + parent
+        if (config.isUseMilky) {
+            return createMilkyProducer(scope0)
+        }
         if (config.isInReverseMode) {
             val address = InetSocketAddress(config.reversedPort)
             return ReversedOneBotProducer(WSServer.create(scope, config, address, logger, actionHandler, config.token))
@@ -125,6 +130,30 @@ internal class ConnectFactory private constructor(
         ))
     }
 
+    fun createMilkyProducer(
+        scope0: CoroutineScope = CoroutineScope(CoroutineName("ConnectFactory"))
+    ): OneBotProducer {
+        val scope = if (parent == null) scope0 else scope0 + parent
+        val apiURL: String = config.milkyApiURL
+        val eventURL: String = config.milkyEventURL
+        val header = mutableMapOf<String, String>()
+        if (config.isAccessToken) {
+            header["Authorization"] = "Bearer ${config.token}"
+        }
+
+        return MilkyProducer(MilkyWSClient.create(
+            scope,
+            config,
+            URI.create(apiURL),
+            URI.create(eventURL),
+            logger,
+            actionHandler,
+            config.retryTimes,
+            config.retryWaitMills,
+            config.retryRestMills,
+            header
+        ))
+    }
 
     companion object {
         @JvmStatic

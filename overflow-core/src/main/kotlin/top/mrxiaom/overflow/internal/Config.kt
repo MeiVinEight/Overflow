@@ -11,6 +11,8 @@ data class Config(
     var wsHost: String = "ws://127.0.0.1:3001",
     @SerialName("reversed_ws_port")
     var reversedWSPort: Int = -1,
+    @SerialName("milky")
+    var milky: MilkyConfig = MilkyConfig(),
     @SerialName("token")
     var token: String = "",
     @SerialName("no_platform")
@@ -38,4 +40,11 @@ data class CacheConfig (
     var enabled: Boolean = false,
     @SerialName("keep_duration_hours")
     var keepDurationHours: Long = 168L,
+)
+@Serializable
+data class MilkyConfig(
+    @SerialName("api_url")
+    var apiURL: String = "",
+    @SerialName("event_url")
+    var eventURL: String = "",
 )

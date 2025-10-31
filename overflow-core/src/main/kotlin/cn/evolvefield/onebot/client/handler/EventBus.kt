@@ -6,6 +6,7 @@ import cn.evolvefield.onebot.sdk.event.UnsolvedEvent
 import cn.evolvefield.onebot.sdk.util.JsonHelper.applyJson
 import cn.evolvefield.onebot.sdk.util.JsonHelper.gson
 import cn.evolvefield.onebot.sdk.util.ignorable
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import net.mamoe.mirai.utils.currentTimeSeconds
 import org.slf4j.LoggerFactory
@@ -54,12 +55,11 @@ object EventBus {
     }
 
     internal fun matchHandlers(
-        message: String
+        json: JsonObject
     ): EventHolder {
-        val messageType = ListenerUtils[message] // 获取消息对应的实体类型
-        val json = JsonParser.parseString(message).asJsonObject
+        val messageType = ListenerUtils[json] // 获取消息对应的实体类型
         if (messageType != null) {
-            val bean = gson.fromJson(message, messageType.java) // 将消息反序列化为对象
+            val bean = gson.fromJson(json, messageType.java) // 将消息反序列化为对象
             bean.applyJson(json)
             logger.debug(String.format("接收到上报消息内容：%s", bean.toString()))
             val executes = handlers[messageType] ?: emptyList()
@@ -68,7 +68,7 @@ object EventBus {
             }
         }
         // 如果该事件未被监听，或者未定义事件类，将其定为 UnsolvedEvent
-        val bean = UnsolvedEvent().also { it.jsonString = message }
+        val bean = UnsolvedEvent().also { it.jsonString = json.toString() }
         val executes = handlers[UnsolvedEvent::class] ?: emptyList()
         bean.postType = json.ignorable("post_type", "")
         bean.time = json.ignorable("time", currentTimeSeconds())

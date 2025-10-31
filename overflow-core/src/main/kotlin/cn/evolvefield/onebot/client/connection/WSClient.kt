@@ -30,7 +30,16 @@ internal class WSClient(
 ) : WebSocketClient(uri, header), IAdapter {
     internal var botConsumer: suspend (Bot) -> Unit = {}
     override val eventsHolder: MutableMap<Long, MutableList<EventHolder>> = mutableMapOf()
-    private var retryCount = 0
+    private var reconnect: WSClientReconnectController = object: WSClientReconnectController(
+        config.parentJob, scope, logger, retryTimes, retryWaitMills, retryRestMills
+    ) {
+        override fun reconnectInternal(): Boolean =reconnectBlocking()
+        override fun onGivingUpReconnecting() {
+            loginBot?.eventDispatcher {
+                broadcastAsync(BotOfflineEvent.Dropped(it, null))
+            }
+        }
+    }
     private var scheduleClose = false
     private var loginBot: Bot? = null
 
@@ -43,8 +52,6 @@ internal class WSClient(
         ) { if (isOpen) close() }
     }
 
-    private val connectDef = CompletableDeferred<Boolean>(config.parentJob)
-
     suspend fun createBot(): Bot {
         val bot = Bot(this, this, config, actionHandler)
         botConsumer.invoke(bot)
@@ -54,7 +61,7 @@ internal class WSClient(
 
     suspend fun connectSuspend(): Boolean {
         if (super.connectBlocking()) return true
-        return connectDef.await()
+        return reconnect.connectDef.await()
     }
 
     override fun onOpen(handshakedata: ServerHandshake) {
@@ -82,47 +89,9 @@ internal class WSClient(
         unlockMutex()
 
         // 自动重连
-        if (!scheduleClose) retry()
+        if (!scheduleClose) reconnect.retry()
         else loginBot?.eventDispatcher {
             broadcastAsync(BotOfflineEvent.Active(it, null))
-        }
-    }
-
-    private fun retry() {
-        if (retryTimes < 1 || retryWaitMills < 0) {
-            logger.warn("连接失败，未开启自动重连，放弃连接")
-            connectDef.complete(false)
-            loginBot?.eventDispatcher {
-                broadcastAsync(BotOfflineEvent.Dropped(it, null))
-            }
-            return
-        }
-        scope.launch {
-            if (retryCount < retryTimes) {
-                retryCount++
-                logger.warn(
-                    "等待 ${
-                        String.format(
-                            "%.1f",
-                            retryWaitMills / 1000.0F
-                        )
-                    } 秒后重连 (第 $retryCount/$retryTimes 次)"
-                )
-                delay(retryWaitMills)
-            } else {
-                retryCount = 0
-                if (retryRestMills < 0) {
-                    logger.warn("重连次数耗尽... 放弃重试")
-                    return@launch
-                }
-                logger.warn("重连次数耗尽... 休息 ${String.format("%.1f", retryRestMills / 1000.0F)} 秒后重试")
-                delay(retryRestMills)
-            }
-            logger.info("正在重连...")
-            if (reconnectBlocking()) {
-                retryCount = 0
-                connectDef.complete(true)
-            }
         }
     }
 
@@ -171,4 +140,54 @@ internal class WSClient(
             )
         }
     }
+}
+internal abstract class WSClientReconnectController(
+    parentJob: Job?,
+    private val scope: CoroutineScope,
+    private val logger: Logger,
+    private val retryTimes: Int,
+    private val retryWaitMills: Long,
+    private val retryRestMills: Long,
+) {
+    private var retryCount = 0
+    val connectDef = CompletableDeferred<Boolean>(parentJob)
+
+    fun retry() {
+        if (retryTimes < 1 || retryWaitMills < 0) {
+            logger.warn("连接失败，未开启自动重连，放弃连接")
+            connectDef.complete(false)
+            onGivingUpReconnecting()
+            return
+        }
+        scope.launch {
+            if (retryCount < retryTimes) {
+                retryCount++
+                logger.warn(
+                    "等待 ${
+                        String.format(
+                            "%.1f",
+                            retryWaitMills / 1000.0F
+                        )
+                    } 秒后重连 (第 $retryCount/$retryTimes 次)"
+                )
+                delay(retryWaitMills)
+            } else {
+                retryCount = 0
+                if (retryRestMills < 0) {
+                    logger.warn("重连次数耗尽... 放弃重试")
+                    return@launch
+                }
+                logger.warn("重连次数耗尽... 休息 ${String.format("%.1f", retryRestMills / 1000.0F)} 秒后重试")
+                delay(retryRestMills)
+            }
+            logger.info("正在重连...")
+            if (reconnectInternal()) {
+                retryCount = 0
+                connectDef.complete(true)
+            }
+        }
+    }
+
+    abstract fun reconnectInternal(): Boolean
+    abstract fun onGivingUpReconnecting()
 }

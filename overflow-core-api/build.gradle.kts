@@ -45,4 +45,6 @@ dependencies {
     api("me.him188:kotlin-jvm-blocking-bridge-runtime:3.0.0-180.1")
 
     api("org.slf4j:slf4j-api:2.0.5")
+
+    compileOnly("org.jetbrains:annotations:24.0.1")
 }

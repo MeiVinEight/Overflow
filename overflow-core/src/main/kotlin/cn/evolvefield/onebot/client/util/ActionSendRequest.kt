@@ -1,6 +1,7 @@
 package cn.evolvefield.onebot.client.util
 
 import cn.evolvefield.onebot.client.core.Bot
+import cn.evolvefield.onebot.client.milky.MilkyWSClient
 import cn.evolvefield.onebot.sdk.util.ignorable
 import cn.evolvefield.onebot.sdk.util.ignorableArray
 import cn.evolvefield.onebot.sdk.util.ignorableObject
@@ -46,13 +47,18 @@ internal class ActionSendRequest(
             kotlin.runCatching {
                 withTimeout(requestTimeout) {
                     val echo = req.nullableString("echo", null)
+                    val message = req.toString()
                     if (echo != null) {
-                        logger.debug("[Send][$echo] --> {}", req.toString())
+                        logger.debug("[Send][$echo] --> {}", message)
                     } else {
-                        logger.debug("[Send] --> {}", req.toString())
+                        logger.debug("[Send] --> {}", message)
                     }
-                    channel.send(req.toString())
-                    resp.await()
+                    if (channel is MilkyWSClient) {
+                        channel.send(req)
+                    } else {
+                        channel.send(message)
+                        resp.await()
+                    }
                 }
             }.onFailure { resp.cancel() }.getOrThrow()
         }

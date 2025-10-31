@@ -45,6 +45,8 @@ dependencies {
 
     api(project(":overflow-core-api"))
 
+    compileOnly("org.jetbrains:annotations:24.0.1")
+
     testImplementation("com.google.code.gson:gson:2.10.1")
     testImplementation("org.java-websocket:Java-WebSocket:1.5.7")
     testImplementation("net.mamoe:mirai-console:$miraiVersion")

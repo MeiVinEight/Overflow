@@ -7,6 +7,7 @@ import cn.evolvefield.onebot.client.util.ActionSendRequest
 import cn.evolvefield.onebot.client.util.OnebotException
 import cn.evolvefield.onebot.sdk.util.ignorable
 import cn.evolvefield.onebot.sdk.util.nullableInt
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.CoroutineScope
@@ -24,8 +25,9 @@ internal interface IAdapter {
     val eventsHolder: MutableMap<Long, MutableList<EventHolder>>
 
     fun onReceiveMessage(message: String) {
+        val json: JsonObject
         try {
-            val json = JsonParser.parseString(message).asJsonObject
+            json = JsonParser.parseString(message).asJsonObject
             if (json.ignorable(META_EVENT, "") != HEART_BEAT) { // 过滤心跳
                 val echo = json.nullableInt("echo", null)
                 if (echo != null) {
@@ -33,27 +35,41 @@ internal interface IAdapter {
                 } else {
                     logger.debug("[Recv] <-- {}", json.toString())
                 }
-
-                if (json.has(API_RESULT_KEY)) { // 接口回调
-                    actionHandler.onReceiveActionResp(json)
-                } else {
-                    val holder = EventBus.matchHandlers(message)
-                    val botId = holder.event.selfId
-                    if (Bot.findInstance(botId) == null) {
-                        val list = eventsHolder[botId] ?: run {
-                            mutableListOf<EventHolder>().also {
-                                eventsHolder[botId] = it
-                            }
-                        }
-                        list.add(holder)
-                        return
-                    } else scope.launch { // 处理事件
-                        handleEvent(holder)
-                    }
-                }
             }
         } catch (e: JsonSyntaxException) {
             logger.error("Json语法错误: {}", message)
+            return
+        }
+        if (json.has(API_RESULT_KEY)) { // 接口回调
+            handleReceiveApiResp(json)
+        } else {
+            handleReceiveEvent(json)
+        }
+    }
+
+    fun handleReceiveApiResp(json: JsonObject) {
+        try {
+            actionHandler.onReceiveActionResp(json)
+        } catch (e: OnebotException) {
+            logger.error("解析异常: {}", e.info)
+        }
+    }
+
+    fun handleReceiveEvent(json: JsonObject) {
+        try {
+            val holder = EventBus.matchHandlers(json)
+            val botId = holder.event.selfId
+            if (Bot.findInstance(botId) == null) {
+                val list = eventsHolder[botId] ?: run {
+                    mutableListOf<EventHolder>().also {
+                        eventsHolder[botId] = it
+                    }
+                }
+                list.add(holder)
+                return
+            } else scope.launch { // 处理事件
+                handleEvent(holder)
+            }
         } catch (e: OnebotException) {
             logger.error("解析异常: {}", e.info)
         }

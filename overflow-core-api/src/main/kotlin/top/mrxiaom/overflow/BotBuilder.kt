@@ -16,6 +16,8 @@ import java.util.function.Supplier
 public class BotBuilder private constructor(
     private var url: String = "ws://127.0.0.1:8080",
     private var reversedPort: Int = -1,
+    private var milkyApiURL: String = "",
+    private var milkyEventURL: String = "",
     private var token: String = "",
     private var retryTimes: Int = 5,
     private var retryWaitMills: Long = 5_000L,
@@ -179,6 +181,8 @@ public class BotBuilder private constructor(
         return OverflowAPI.get().botStarter.start(
             url = url,
             reversedPort = reversedPort,
+            milkyApiURL = milkyApiURL,
+            milkyEventURL = milkyEventURL,
             token = token,
             retryTimes = retryTimes,
             retryWaitMills = retryWaitMills,
@@ -211,6 +215,19 @@ public class BotBuilder private constructor(
             if (port !in 1..65535) throw IllegalStateException("无效的反向 WebSocket 端口号")
             return BotBuilder().also { it.reversedPort = port }
         }
+
+        /**
+         * Milky 连接
+         * @param apiURL `/api` 端点地址 (HTTP/HTTPS)
+         * @param eventURL `/event` 端点地址 (WebSocket/WebSocket Secure)
+         */
+        @JvmStatic
+        fun milky(apiURL: String, eventURL: String): BotBuilder {
+            return BotBuilder().also {
+                it.milkyApiURL = apiURL
+                it.milkyEventURL = eventURL
+            }
+        }
     }
 }
 
@@ -218,6 +235,8 @@ interface IBotStarter {
     suspend fun start(
         url: String,
         reversedPort: Int,
+        milkyApiURL: String,
+        milkyEventURL: String,
         token: String,
         retryTimes: Int,
         retryWaitMills: Long,

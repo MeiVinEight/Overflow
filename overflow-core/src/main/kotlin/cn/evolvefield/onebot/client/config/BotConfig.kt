@@ -18,6 +18,14 @@ class BotConfig(
      */
     val reversedPort: Int = -1,
     /**
+     * Milky 主动操作发送接口 (HTTP/HTTPS)
+     */
+    val milkyApiURL: String = "",
+    /**
+     * Milky 事件接收接口 (WebSocket/WebSocket Secure)
+     */
+    val milkyEventURL: String = "",
+    /**
      * token或者verifyKey鉴权
      */
     val token: String = "",
@@ -64,4 +72,5 @@ class BotConfig(
     val parentJob: Job? = null
 ) {
     val isInReverseMode get() = reversedPort in 1..65535
+    val isUseMilky get() = milkyApiURL.startsWith("http") && milkyEventURL.startsWith("ws")
 }
