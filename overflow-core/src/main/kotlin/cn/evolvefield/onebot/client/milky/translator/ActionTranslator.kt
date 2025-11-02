@@ -22,6 +22,12 @@ internal interface ActionTranslator {
         fun init() {
             onebotRegistry.clear()
             milkyRegistry.clear()
+
+            //////////////////////////////////////////
+            // 系统 API
+            // https://milky.ntqqrev.org/api/system
+            //////////////////////////////////////////
+
             register("get_login_info", responseObject { request, data ->
                 add("user_id", data["uin"])
                 add("nickname", data["nickname"])
@@ -34,9 +40,7 @@ internal interface ActionTranslator {
                     add(key, data[key])
                 }
             })
-            register("get_stranger_info", "get_user_profile", requestParams { params ->
-                add("user_id", params["user_id"])
-            }, responseObject { request, data ->
+            register("get_stranger_info", "get_user_profile", responseObject { request, data ->
                 add("user_id", request["user_id"])
                 add("nickname", data["nickname"])
                 add("qid", data["qid"])
@@ -63,13 +67,85 @@ internal interface ActionTranslator {
                     add(obj)
                 }
             })
-            register("get_friend_info", requestParams { params ->
-                add("user_id", params["user_id"])
-            }, responseObjectOfData { request, data ->
+            register("get_friend_info", responseObject { request, data ->
+                val obj = data["friend"].asJsonObject
+                for (key in obj.keySet()) {
+                    add(key, obj[key])
+                }
                 // 同上 get_friend_list
                 addIfNotExists("age", 0)
                 addIfNotExists("level", 0)
                 addIfNotExists("login_days", 0)
+            })
+            register("get_group_list", responseArray { request, data ->
+                for (element in data["groups"].asJsonArray) {
+                    val obj = element.asJsonObject
+                    // 相同类型与名称的字段
+                    // group_id, group_name, member_count, max_member_count
+                    // 以下是缺少的字段
+                    obj.addIfNotExists("group_memo", "")
+                    obj.addIfNotExists("group_create_time", 0L)
+                    obj.addIfNotExists("group_level", 0)
+                    add(obj)
+                }
+            })
+            register("get_group_info", responseObject { request, data ->
+                val obj = data["group"].asJsonObject
+                for (key in obj.keySet()) {
+                    add(key, obj[key])
+                }
+                // 同上 get_group_list
+                addIfNotExists("group_memo", "")
+                addIfNotExists("group_create_time", 0L)
+                addIfNotExists("group_level", 0)
+            })
+            register("get_group_member_list", responseArray { request, data ->
+                for (element in data["members"].asJsonArray) {
+                    val obj = element.asJsonObject
+                    // 相同类型与名称的字段
+                    // user_id, nickname, sex, group_id,
+                    // card, title, level, role, join_time, last_sent_time
+                    // 以下是缺少的字段
+                    if (data.has("shut_up_end_time")) {
+                        obj.add("shut_up_timestamp", data["shut_up_end_time"])
+                    } else {
+                        obj.addProperty("shut_up_timestamp", -1L)
+                    }
+                    add(obj)
+                }
+            })
+            register("get_group_member_info", responseObject { request, data ->
+                val obj = data["member"].asJsonObject
+                for (key in obj.keySet()) {
+                    add(key, obj[key])
+                }
+                // 同上 get_group_member_list
+                if (data.has("shut_up_end_time")) {
+                    add("shut_up_timestamp", data["shut_up_end_time"])
+                } else {
+                    addProperty("shut_up_timestamp", -1L)
+                }
+            })
+            register("get_cookies", requestParams { params ->
+                add("domain", params["domain"])
+            }, responseObject { request, data ->
+                add("cookies", data["cookies"])
+            })
+            register("get_csrf_token", responseObject { request, data ->
+                add("token", data["csrf_token"])
+            })
+            // TODO: 实现 get_credentials
+
+            //////////////////////////////////////////
+            // 消息 API
+            // https://milky.ntqqrev.org/api/message
+            //////////////////////////////////////////
+
+            register("send_private_msg", "send_private_message", requestParams { params ->
+                add("message", MessageTranslator.onebotToMilkyOutgoing(params["message"].asJsonArray))
+            }, responseObject { request, data ->
+                // TODO: 需要解决一个问题，Onebot 和 mirai 都是用 Int 储存消息 ID 的，需要找一个方法将其改为 Long
+                add("message_id", data["message_seq"])
             })
         }
 
