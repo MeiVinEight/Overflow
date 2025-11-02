@@ -4,18 +4,20 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 
-internal fun buildObject(block: JsonObject.() -> Unit): JsonObject = JsonObject().apply(block)
-internal fun buildArray(block: JsonArray.() -> Unit): JsonArray = JsonArray().apply(block)
-internal fun requestParams(block: JsonObject.(JsonObject) -> Unit): (JsonObject) -> JsonObject = {
+internal interface TranslatorJsonUtil
+
+internal fun TranslatorJsonUtil.buildObject(block: JsonObject.() -> Unit): JsonObject = JsonObject().apply(block)
+internal fun TranslatorJsonUtil.buildArray(block: JsonArray.() -> Unit): JsonArray = JsonArray().apply(block)
+internal fun TranslatorJsonUtil.requestParams(block: JsonObject.(JsonObject) -> Unit): (JsonObject) -> JsonObject = {
     buildObject { block(this, it) }
 }
-internal fun responseObject(block: JsonObject.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
+internal fun TranslatorJsonUtil.responseObject(block: JsonObject.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
     buildObject { block(this, request, data) }
 }
-internal fun responseObjectOfData(block: JsonObject.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
+internal fun TranslatorJsonUtil.responseObjectOfData(block: JsonObject.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
     data.also { block(it, request, data) }
 }
-internal fun responseArray(block: JsonArray.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
+internal fun TranslatorJsonUtil.responseArray(block: JsonArray.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
     buildArray { block(this, request, data) }
 }
 

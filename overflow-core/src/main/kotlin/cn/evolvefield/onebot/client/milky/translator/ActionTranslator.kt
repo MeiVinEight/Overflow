@@ -16,7 +16,7 @@ internal interface ActionTranslator {
      */
     fun response(request: JsonObject, data: JsonObject): JsonElement
 
-    companion object {
+    companion object : TranslatorJsonUtil {
         val onebotRegistry: MutableMap<String, ActionTranslator> = mutableMapOf()
         val milkyRegistry: MutableMap<String, ActionTranslator> = mutableMapOf()
         fun init() {
@@ -34,8 +34,8 @@ internal interface ActionTranslator {
                     add(key, data[key])
                 }
             })
-            register("get_stranger_info", "get_user_profile", requestParams {
-                add("user_id", it["user_id"])
+            register("get_stranger_info", "get_user_profile", requestParams { params ->
+                add("user_id", params["user_id"])
             }, responseObject { request, data ->
                 add("user_id", request["user_id"])
                 add("nickname", data["nickname"])
@@ -63,8 +63,8 @@ internal interface ActionTranslator {
                     add(obj)
                 }
             })
-            register("get_friend_info", requestParams {
-                add("user_id", it["user_id"])
+            register("get_friend_info", requestParams { params ->
+                add("user_id", params["user_id"])
             }, responseObjectOfData { request, data ->
                 // 同上 get_friend_list
                 addIfNotExists("age", 0)
@@ -73,10 +73,10 @@ internal interface ActionTranslator {
             })
         }
 
-        fun register(sameAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(sameAction, sameAction, resp)
-        fun register(sameAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) = register(sameAction, sameAction, req, resp)
-        fun register(onebotAction: String, milkyAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(onebotAction, milkyAction, { JsonObject() }, resp)
-        fun register(onebotAction: String, milkyAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) {
+        fun Companion.register(sameAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(sameAction, sameAction, resp)
+        fun Companion.register(sameAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) = register(sameAction, sameAction, req, resp)
+        fun Companion.register(onebotAction: String, milkyAction: String, resp: (JsonObject, JsonObject) -> JsonElement) = register(onebotAction, milkyAction, { JsonObject() }, resp)
+        fun Companion.register(onebotAction: String, milkyAction: String, req: (JsonObject) -> JsonObject, resp: (JsonObject, JsonObject) -> JsonElement) {
             val impl = object : ActionTranslator {
                 override val action: String = milkyAction
                 override fun request(params: JsonObject): JsonObject = req(params)
