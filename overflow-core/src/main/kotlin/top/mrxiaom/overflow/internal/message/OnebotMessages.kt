@@ -468,8 +468,23 @@ internal object OnebotMessages {
                             )
                         }
 
+                        "milky_market_face" -> {
+                            val url = data["url"].string
+                            // TODO: 支持 Milky 的商城表情消息
+                        }
+
                         "xml" -> add(SimpleServiceMessage(60, data["data"].string))
                         "json" -> add(LightApp(data["data"].string))
+
+                        "milky_xml" -> {
+                            val serviceId = data["service_id"].int
+                            val xml = data["xml_payload"].string
+                            add(SimpleServiceMessage(serviceId, xml))
+                        }
+                        "milky_light_app" -> {
+                            val json = data["json_payload"].string
+                            add(LightApp(json))
+                        }
 
                         "reply" -> {
                             val id = when {
@@ -504,6 +519,14 @@ internal object OnebotMessages {
                             val url = data["url"].string
 
                             add(WrappedFileMessage(id, 0, name, size, url))
+                        }
+
+                        "milky_file" -> {
+                            val fileId = data["file_id"].string
+                            val fileName = data["file_name"].string
+                            val fileSize = data["file_size"].long
+                            val fileHash = data["file_hash"]?.string
+                            add(WrappedFileMessage(fileId, 0, fileName, fileSize))
                         }
 
                         "markdown" -> when (app) { // 其它实现可能有其它格式，预留判断

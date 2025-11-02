@@ -6,10 +6,15 @@ import com.google.gson.JsonObject
 
 internal interface TranslatorJsonUtil
 
-internal fun TranslatorJsonUtil.buildObject(block: JsonObject.() -> Unit): JsonObject = JsonObject().apply(block)
-internal fun TranslatorJsonUtil.buildArray(block: JsonArray.() -> Unit): JsonArray = JsonArray().apply(block)
+internal fun buildObject(block: JsonObject.() -> Unit): JsonObject = JsonObject().apply(block)
+internal fun buildArray(block: JsonArray.() -> Unit): JsonArray = JsonArray().apply(block)
 internal fun TranslatorJsonUtil.requestParams(block: JsonObject.(JsonObject) -> Unit): (JsonObject) -> JsonObject = {
-    buildObject { block(this, it) }
+    buildObject {
+        block(this, it)
+        if (it.has("group_id")) add("group_id", it["group_id"])
+        if (it.has("user_id")) add("user_id", it["user_id"])
+        if (it.has("no_cache")) add("no_cache", it["no_cache"])
+    }
 }
 internal fun TranslatorJsonUtil.responseObject(block: JsonObject.(JsonObject, JsonObject) -> Unit): (JsonObject, JsonObject) -> JsonElement = { request, data ->
     buildObject { block(this, request, data) }
