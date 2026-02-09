@@ -357,6 +357,13 @@ internal object OnebotMessages {
                             } else {
                                 add(image)
                             }
+
+                            /**
+                             * 保存图片原始 Json 数据到 [WrappedImage.rawJson]
+                             */
+                            if (image is WrappedImage) {
+                                image.rawJson = data
+                            }
                         }
 
                         "record" -> add(audioFromFile(data["file"].string))

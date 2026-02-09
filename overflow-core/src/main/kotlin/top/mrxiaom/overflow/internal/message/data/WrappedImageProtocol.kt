@@ -2,6 +2,7 @@ package top.mrxiaom.overflow.internal.message.data
 
 import cn.evolvefield.onebot.client.util.fileType
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.message.data.Image
@@ -43,6 +44,14 @@ internal data class WrappedImage(
     override val width: Int,
     override val height: Int,
 ): Image {
+
+    /**
+     * 图片消息原始 Json 数据
+     *
+     * 用以获取一些非 Onebot 规范定义的数据
+     */
+    var rawJson: JsonObject? = null
+
     private val _stringValue: String? by lazy(LazyThreadSafetyMode.NONE) {
         val fileString = if (url.startsWith("base64://") && url.length > 32) {
             val s = url.replace("base64://", "")
